@@ -1,0 +1,27 @@
+- name: Deploy tested image on PROD
+  hosts: prod
+  become: true
+  tasks:
+    - name: Pull the tested image from Docker Hub
+      community.docker.docker_image:
+        name: "{{ image }}"
+        tag: "{{ tag }}"
+        source: pull
+
+    - name: Start production container on port 80
+      community.docker.docker_container:
+        name: applebite-prod
+        image: "{{ image }}:{{ tag }}"
+        state: started
+        recreate: true
+        restart_policy: always
+        published_ports: ["80:80"]
+
+    - name: Health check production
+      ansible.builtin.uri:
+        url: http://localhost/
+        status_code: 200
+      register: site
+      retries: 10
+      delay: 3
+      until: site.status == 200

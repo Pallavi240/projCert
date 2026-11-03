@@ -1,0 +1,22 @@
+- name: Push tested image to Docker Hub
+  hosts: test
+  become: true
+  tasks:
+    - name: Log in to Docker Hub (credentials come from Jenkins, never stored in Git)
+      community.docker.docker_login:
+        username: "{{ lookup('env', 'DH_USER') }}"
+        password: "{{ lookup('env', 'DH_PASS') }}"
+      no_log: true
+
+    - name: Push the image with its build tag
+      community.docker.docker_image:
+        name: "{{ image }}:{{ tag }}"
+        source: local
+        push: true
+
+    - name: Also tag and push it as latest
+      community.docker.docker_image:
+        name: "{{ image }}:{{ tag }}"
+        repository: "{{ image }}:latest"
+        source: local
+        push: true

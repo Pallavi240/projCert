@@ -1,0 +1,30 @@
+- name: Provision server with all required software
+  hosts: all
+  become: true
+  tasks:
+    - name: Install base packages, Docker engine and Docker SDK for Python
+      ansible.builtin.apt:
+        name: [ca-certificates, curl, git, docker.io, python3-docker]
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Make sure Docker is running and starts on boot
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Allow user p to run docker without sudo
+      ansible.builtin.user:
+        name: p
+        groups: docker
+        append: true
+
+    - name: Show installed Docker version
+      ansible.builtin.command: docker --version
+      register: dv
+      changed_when: false
+
+    - ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ready - {{ dv.stdout }}"

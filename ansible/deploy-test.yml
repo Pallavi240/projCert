@@ -1,0 +1,48 @@
+- name: Build image and deploy container on TEST
+  hosts: test
+  become: true
+  vars:
+    app_dir: /opt/applebite
+  tasks:
+    - name: Create build directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+
+    - name: Copy website source
+      ansible.builtin.copy:
+        src: "{{ src }}/website"
+        dest: "{{ app_dir }}/"
+
+    - name: Copy Dockerfile
+      ansible.builtin.copy:
+        src: "{{ src }}/Dockerfile"
+        dest: "{{ app_dir }}/Dockerfile"
+
+    - name: Build Docker image
+      community.docker.docker_image:
+        name: "{{ image }}"
+        tag: "{{ tag }}"
+        source: build
+        build:
+          path: "{{ app_dir }}"
+          pull: true
+        force_source: true
+
+    - name: Run the container on port 8080
+      community.docker.docker_container:
+        name: applebite-test
+        image: "{{ image }}:{{ tag }}"
+        state: started
+        recreate: true
+        restart_policy: always
+        published_ports: ["8080:80"]
+
+    - name: Wait until the site answers with HTTP 200
+      ansible.builtin.uri:
+        url: http://localhost:8080/
+        status_code: 200
+      register: site
+      retries: 10
+      delay: 3
+      until: site.status == 200
