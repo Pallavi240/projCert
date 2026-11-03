@@ -20,3 +20,7 @@
         repository: "{{ image }}:latest"
         source: local
         push: true
+
+    - name: Log out of Docker Hub (so later builds never reuse an old token)
+      community.docker.docker_login:
+        state: absent
